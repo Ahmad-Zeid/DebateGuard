@@ -1,0 +1,27 @@
+﻿project_id                = "your-gcp-project-id"
+region                    = "us-central1"
+service_name              = "debateguard"
+container_image           = "us-central1-docker.pkg.dev/your-gcp-project-id/debateguard/debateguard:latest"
+runtime_service_account_id = "debateguard-run-sa"
+allow_unauthenticated     = true
+
+create_firestore_database = false
+firestore_location        = "nam5"
+firestore_database        = "(default)"
+
+live_model                = "gemini-live-2.5-flash-preview"
+factcheck_model           = "gemini-2.5-flash"
+
+min_instance_count        = 0
+max_instance_count        = 3
+container_cpu             = "1"
+container_memory          = "1Gi"
+request_timeout_seconds   = 300
+
+# Optional: principal allowed to deploy and impersonate runtime SA
+# deployer_member = "serviceAccount:github-actions-deployer@your-gcp-project-id.iam.gserviceaccount.com"
+
+# Optional: extra environment variables
+# additional_env_vars = {
+#   LOG_LEVEL = "INFO"
+# }

@@ -1,0 +1,58 @@
+﻿flowchart LR
+    subgraph Browser[Browser Frontend]
+      UI[React + TypeScript SPA]
+      MIC[Microphone Capture\nWeb Audio + AudioWorklet]
+      CAM[Webcam Capture]
+      FACE[MediaPipe Face Landmarker\nLocal in Browser]
+      POSE[MediaPipe Pose Landmarker\nLocal in Browser]
+      AGG[Delivery Metrics Aggregator\n2s cadence]
+      SNAP[Sparse JPEG Snapshot\nmax 1 FPS]
+    end
+
+    subgraph CloudRun[Google Cloud Run\nSingle DebateGuard Service]
+      STATIC[FastAPI Static Hosting\nServes Built Frontend]
+      WS[WebSocket Gateway\n/ws/live]
+      API[REST Endpoint\n/api/history]
+      LIVE[Live Session Manager\nAudio + Snapshot Bridge]
+      FACT[Fact-check Service\nPolicy + Claim Detection]
+      REPORT[Round Report Generator\nRubric JSON]
+      STORE[Firestore Repository]
+    end
+
+    subgraph Vertex[Vertex AI]
+      LIVEAPI[Gemini Live API\nRealtime speech + model audio]
+      GROUNDED[Gemini Fact-check Model\nGoogle Search Grounding]
+    end
+
+    FS[(Firestore\nsessions / rounds / claims / reports)]
+
+    STATIC --> UI
+    UI -->|ws://.../ws/live| WS
+    UI -->|GET /api/history| API
+
+    MIC -->|audio.chunk\n16k PCM mono\n20-100ms| WS
+    CAM --> FACE
+    CAM --> POSE
+    FACE --> AGG
+    POSE --> AGG
+    AGG -->|metrics.delivery\nevery 2s| WS
+    CAM --> SNAP
+    SNAP -->|video.snapshot\nimage/jpeg <= 1 FPS| WS
+
+    WS --> LIVE
+    LIVE <--> LIVEAPI
+
+    WS --> FACT
+    FACT -->|grounded fact verification request| GROUNDED
+    FACT --> REPORT
+
+    WS --> REPORT
+    REPORT --> STORE
+    FACT --> STORE
+    API --> STORE
+    STORE <--> FS
+
+    classDef local fill:#1e293b,color:#dbeafe,stroke:#334155;
+    class FACE,POSE,AGG,SNAP local;
+    classDef cloud fill:#0f766e,color:#ffffff,stroke:#134e4a;
+    class STORE,FS cloud;

@@ -1,0 +1,28 @@
+[project]
+name = "debateguard-backend"
+version = "0.1.0"
+description = "DebateGuard backend scaffold for Gemini Live Agent Challenge"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "fastapi>=0.115.5",
+  "uvicorn[standard]>=0.32.0",
+  "google-genai>=1.0.0",
+  "google-cloud-firestore>=2.19.0",
+  "pydantic-settings>=2.6.1",
+  "python-dotenv>=1.0.1"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.3",
+  "httpx>=0.28.0",
+  "ruff>=0.8.2"
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

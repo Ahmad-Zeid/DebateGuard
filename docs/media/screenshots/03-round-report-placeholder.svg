@@ -1,0 +1,6 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#0b1020"/>
+  <rect x="40" y="40" width="1200" height="640" rx="16" fill="#111827" stroke="#14532d" stroke-width="2"/>
+  <text x="640" y="320" text-anchor="middle" fill="#dcfce7" font-family="Arial" font-size="42">Screenshot Placeholder</text>
+  <text x="640" y="380" text-anchor="middle" fill="#86efac" font-family="Arial" font-size="28">Round Report Rubric + Next Drills</text>
+</svg>
