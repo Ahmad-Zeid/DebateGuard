@@ -13,3 +13,12 @@ PORT = int(os.getenv("PORT", "8000"))
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./dev_debateguard.db") if ENVIRONMENT == "DEV" else os.getenv("DATABASE_URL")
+
+if ENVIRONMENT == "PROD" and not DATABASE_URL:
+    raise ValueError("CRITICAL: DATABASE_URL is missing in PROD environment.")
+
+if ENVIRONMENT == "PROD" and not FRONTEND_URL:
+    raise ValueError("CRITICAL: FRONTEND_URL is missing in PROD environment.")
+
+if not GEMINI_API_KEY:
+    raise ValueError("CRITICAL: GEMINI_API_KEY is missing in PROD environment.")
