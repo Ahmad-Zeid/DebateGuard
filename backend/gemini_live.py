@@ -1,6 +1,7 @@
 import asyncio
 import inspect
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 from google import genai
@@ -10,7 +11,7 @@ class GeminiLive:
     """
     Handles the interaction with the Gemini Live API.
     """
-    def __init__(self, api_key, model, type, prompt, input_sample_rate, tools=None, tool_mapping=None):
+    def __init__(self, api_key, model, type, input_sample_rate, tools=None, tool_mapping=None):
         """
         Initializes the GeminiLive client.
 
@@ -18,7 +19,6 @@ class GeminiLive:
             api_key (str): The Gemini API Key.
             model (str): The model name to use.
             type (str): The type of the conversation.
-            prompt (str): The initial prompt for the conversation.
             input_sample_rate (int): The sample rate for audio input.
             tools (list, optional): List of tools to enable. Defaults to None.
             tool_mapping (dict, optional): Mapping of tool names to functions. Defaults to None.
@@ -26,11 +26,13 @@ class GeminiLive:
         self.api_key = api_key
         self.model = model
         self.type = type
-        self.prompt = prompt
         self.input_sample_rate = input_sample_rate
         self.client = genai.Client(api_key=api_key, http_options={"api_version": "v1alpha"})
-        self.tools = tools or []
+        
+        self.tools = tools or [{"google_search": {}}]
         self.tool_mapping = tool_mapping or {}
+        self.user_speech_duration = 0.0
+        
         if self.type not in ["debate", "coaching"]:
             self.type = "coaching"  # Default to debate if invalid type provided
 
@@ -61,6 +63,20 @@ class GeminiLive:
                         await session.send_realtime_input(
                             audio=types.Blob(data=chunk, mime_type=f"audio/pcm;rate={self.input_sample_rate}")
                         )
+                        
+                        # Soft interruption logic
+                        if self.is_agent_talking:
+                            # Estimate duration based on 16-bit PCM mono
+                            chunk_duration = len(chunk) / (self.input_sample_rate * 2)
+                            self.user_speech_duration += chunk_duration
+                            
+                            if self.user_speech_duration > 2:
+                                logger.info("User speech > 2s during agent turn. Sending system nudge.")
+                                await text_input_queue.put("Moderator Note: User is trying to interrupt. Do not stop your point, but acknowledge the interjection at the end of this sentence.")
+                                self.user_speech_duration = 0 # Reset nudge
+                        else:
+                            self.user_speech_duration = 0.0
+                            
                 except asyncio.CancelledError:
                     pass
 
@@ -76,8 +92,6 @@ class GeminiLive:
                     pass
 
             async def send_text():
-                if self.type == "debate":
-                    pass  # In debate mode, we might not want to send user text input/ that is the input of the body language metrics
                 try:
                     while True:
                         text = await text_input_queue.get()
@@ -98,6 +112,7 @@ class GeminiLive:
                             
                             if server_content:
                                 if server_content.model_turn:
+                                    self.is_agent_talking = True
                                     for part in server_content.model_turn.parts:
                                         if part.inline_data:
                                             if inspect.iscoroutinefunction(audio_output_callback):
@@ -112,9 +127,18 @@ class GeminiLive:
                                     await event_queue.put({"type": "gemini", "text": server_content.output_transcription.text})
                                 
                                 if server_content.turn_complete:
+                                    self.is_agent_talking = False
+                                    self.user_speech_duration = 0.0
                                     await event_queue.put({"type": "turn_complete"})
                                 
                                 if server_content.interrupted:
+                                    self.is_agent_talking = False
+                                    self.user_speech_duration = 0.0
+                                    
+                                    # Recovery prompt text nudge
+                                    logger.info("Agent was interrupted. Forcing recovery...")
+                                    await text_input_queue.put("You were interrupted. Briefly acknowledge the point and finish your previous argument.")
+                                    
                                     if audio_interrupt_callback:
                                         if inspect.iscoroutinefunction(audio_interrupt_callback):
                                             await audio_interrupt_callback()
