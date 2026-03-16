@@ -2,6 +2,15 @@ import asyncio
 import inspect
 import logging
 import time
+import socket
+
+# Force IPv4 to prevent IPv6 timeout hangs in websockets ("timed out during opening handshake")
+orig_getaddrinfo = socket.getaddrinfo
+
+def patched_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+    return orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+
+socket.getaddrinfo = patched_getaddrinfo
 
 logger = logging.getLogger(__name__)
 from google import genai
@@ -33,8 +42,26 @@ class GeminiLive:
         self.tool_mapping = tool_mapping or {}
         self.user_speech_duration = 0.0
         
-        if self.type not in ["debate", "coaching"]:
-            self.type = "coaching"  # Default to debate if invalid type provided
+        if self.type not in ["DEBATE", "COACH"]:
+            self.type = "COACH"
+        
+        self.is_agent_talking = False
+
+        if self.type == "DEBATE":
+            self.prompt = (
+                "You are a fierce, adversarial debate opponent. Challenge every argument the user makes. "
+                "Use logic, evidence, and rhetorical skill to counter their points. Never concede easily. "
+                "Be respectful but relentless. Push the user to defend their position rigorously. "
+                "You can see the user via their camera feed — use visual cues to inform your responses."
+            )
+        else:
+            self.prompt = (
+                "You are an expert debate coach. Help the user improve their argumentation and delivery. "
+                "Provide constructive feedback on their reasoning, rhetoric, and presentation. "
+                "When you receive coaching nudges about body language issues, naturally weave that feedback "
+                "into the conversation. Be supportive but honest about areas for improvement. "
+                "You can see the user via their camera feed — comment on their posture and presence."
+            )
 
     async def start_session(self, audio_input_queue, video_input_queue, text_input_queue, audio_output_callback, audio_interrupt_callback=None):
         config = types.LiveConnectConfig(

@@ -110,7 +110,6 @@ async def websocket_endpoint(websocket: WebSocket, debate_id: uuid.UUID, token: 
         model=MODEL, 
         input_sample_rate=16000,
         type=debate.mode.value,
-        prompt="", # Handled in GeminiLive init now
     )
 
     async def receive_from_client():
