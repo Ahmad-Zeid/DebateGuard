@@ -342,37 +342,34 @@ export default function DebateRoom() {
       <div className="flex-1 flex overflow-hidden">
         {/* Stage */}
         <div className="flex-1 flex flex-col relative">
-          {/* AI Audio Visualizer */}
-          <div className="flex-1 flex items-center justify-center bg-gray-950">
-            <div className="flex items-end gap-1 h-16">
-              {waveformBars.map((i) => {
-                // Deterministic pseudo-random height based on index
-                const h = isActive && isConnected ? 8 + ((i * 7 + 3) % 25) : 8;
-                return (
-                  <div
-                    key={i}
-                    className="w-1.5 bg-linear-to-t from-red-500 to-orange-400 rounded-full opacity-40"
-                    style={{
-                      height: `${h}px`,
-                      transition: 'height 0.15s ease',
-                      animationDelay: `${i * 0.05}s`,
-                    }}
-                  />
-                );
-              })}
-            </div>
-          </div>
-
-          {/* User Camera PiP */}
-          <div className="absolute bottom-4 right-4 w-48 rounded-xl overflow-hidden border-2 border-gray-700/50 shadow-2xl">
+          {/* User Camera — Primary View */}
+          <div className="flex-1 flex items-center justify-center bg-gray-950 overflow-hidden">
             <video
               ref={videoRef}
               autoPlay
               playsInline
               muted
-              className="w-full aspect-square object-cover mirror"
+              className="h-full w-full object-cover"
               style={{ transform: 'scaleX(-1)' }}
             />
+          </div>
+
+          {/* AI Audio Visualizer — PiP Overlay */}
+          <div className="absolute bottom-4 left-4 px-4 py-3 rounded-xl bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 shadow-2xl flex items-end gap-0.5 h-14">
+            {waveformBars.map((i) => {
+              const h = isActive && isConnected ? 8 + ((i * 7 + 3) % 25) : 8;
+              return (
+                <div
+                  key={i}
+                  className="w-1 bg-linear-to-t from-red-500 to-orange-400 rounded-full opacity-60"
+                  style={{
+                    height: `${h}px`,
+                    transition: 'height 0.15s ease',
+                    animationDelay: `${i * 0.05}s`,
+                  }}
+                />
+              );
+            })}
           </div>
 
           {/* Hidden canvas for frame capture */}

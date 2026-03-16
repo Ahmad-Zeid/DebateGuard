@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../lib/api';
 import ReactMarkdown from 'react-markdown';
@@ -16,26 +16,48 @@ export default function ReportPage() {
   const { debateId } = useParams<{ debateId: string }>();
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
+  const triggeredRef = useRef(false);
 
   useEffect(() => {
     const fetchReport = async () => {
       try {
         const res = await api.get(`/debates/${debateId}/report`);
         setData(res.data);
-      } catch {
-        setError('Report not found or not generated yet.');
-      } finally {
         setLoading(false);
+      } catch {
+        // Report not found — trigger generation once
+        if (!triggeredRef.current) {
+          triggeredRef.current = true;
+          setGenerating(true);
+          setLoading(false);
+          try {
+            await api.post(`/debates/${debateId}/report`);
+            // After generation, fetch the report
+            const res = await api.get(`/debates/${debateId}/report`);
+            setData(res.data);
+            setGenerating(false);
+          } catch {
+            setGenerating(false);
+            setError('Failed to generate report. Please try again later.');
+          }
+        } else {
+          setLoading(false);
+          setError('Report not found or not generated yet.');
+        }
       }
     };
     fetchReport();
   }, [debateId]);
 
-  if (loading) {
+  if (loading || generating) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="w-8 h-8 animate-spin text-red-400" />
+        <p className="text-gray-400 text-sm">
+          {generating ? 'Generating your report — this may take a moment...' : 'Loading report...'}
+        </p>
       </div>
     );
   }

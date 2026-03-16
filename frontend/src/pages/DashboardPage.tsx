@@ -46,6 +46,10 @@ export default function DashboardPage() {
       setFormError('Title is required');
       return;
     }
+    if (!description.trim()) {
+      setFormError('Description is required');
+      return;
+    }
     setFormError('');
     setCreating(true);
     try {

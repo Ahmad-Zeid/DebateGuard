@@ -9,7 +9,7 @@ export default function Layout() {
     <div className="min-h-screen bg-gray-950 text-gray-100 flex flex-col">
       {/* Global Header */}
       <header className="border-b border-gray-800/60 bg-gray-950/80 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="px-4 h-16 flex items-center justify-between">
           <Link to="/dashboard" className="flex items-center gap-2.5 group">
             <div className="w-9 h-9 rounded-lg bg-linear-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-lg shadow-red-500/20 group-hover:shadow-red-500/40 transition-shadow">
               <Shield className="w-5 h-5 text-white" />

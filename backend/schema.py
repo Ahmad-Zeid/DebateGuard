@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import List, Optional
 
+
 from sqlmodel import SQLModel, Field, Relationship, Column, JSON
 
 class DebateMode(str, Enum):
@@ -12,6 +13,12 @@ class DebateMode(str, Enum):
 class RoleEnum(str, Enum):
     user = "user"
     agent = "agent"
+
+class ReportStatus(str, Enum):
+    idle = "idle"
+    generating = "generating"
+    done = "done"
+    failed = "failed"
 
 class User(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -32,6 +39,7 @@ class Debate(SQLModel, table=True):
     title: str
     description: str
     mode: DebateMode
+    report_status: ReportStatus = Field(default=ReportStatus.idle)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     user: Optional[User] = Relationship(back_populates="debates")

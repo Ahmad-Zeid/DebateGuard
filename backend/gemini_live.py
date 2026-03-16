@@ -20,7 +20,7 @@ class GeminiLive:
     """
     Handles the interaction with the Gemini Live API.
     """
-    def __init__(self, api_key, model, type, input_sample_rate, tools=None, tool_mapping=None):
+    def __init__(self, api_key, model, type, input_sample_rate, title="", description="", tools=None, tool_mapping=None):
         """
         Initializes the GeminiLive client.
 
@@ -47,12 +47,19 @@ class GeminiLive:
         
         self.is_agent_talking = False
 
+        topic_context = "\nMake sure to use the google search tool every single time the user mentions a statistic to make sure it is not made up. Just search the statistic and if you dont find it easily that it is most likely made up."
+        if title:
+            topic_context += f'\nThe debate topic is: "{title}".'
+        if description:
+            topic_context += f'\nThe user\'s position/context: "{description}".'
+
         if self.type == "DEBATE":
             self.prompt = (
                 "You are a fierce, adversarial debate opponent. Challenge every argument the user makes. "
                 "Use logic, evidence, and rhetorical skill to counter their points. Never concede easily. "
                 "Be respectful but relentless. Push the user to defend their position rigorously. "
                 "You can see the user via their camera feed — use visual cues to inform your responses."
+                + topic_context
             )
         else:
             self.prompt = (
@@ -61,6 +68,7 @@ class GeminiLive:
                 "When you receive coaching nudges about body language issues, naturally weave that feedback "
                 "into the conversation. Be supportive but honest about areas for improvement. "
                 "You can see the user via their camera feed — comment on their posture and presence."
+                + topic_context
             )
 
     async def start_session(self, audio_input_queue, video_input_queue, text_input_queue, audio_output_callback, audio_interrupt_callback=None):
