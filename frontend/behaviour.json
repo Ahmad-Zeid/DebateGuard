@@ -1,0 +1,72 @@
+[
+  {
+    "priority": 1,
+    "metric": "gaze",
+    "interpretations": [
+      "maintained",
+      "darting",
+      "evading"
+    ],
+    "advice_notification": "User is breaking eye contact, showing evasion or distraction, so note to him to look directly at the camera to establish dominance and stop signaling that he is rattled."
+  },
+  {
+    "priority": 2,
+    "metric": "posture",
+    "interpretations": [
+      "expanded",
+      "compressed",
+      "slouching"
+    ],
+    "advice_notification": "User is slouching, showing low energy and defensiveness, so note to him to sit up straight and expand his torso to convey authority instead of physically shrinking from the attack."
+  },
+  {
+    "priority": 3,
+    "metric": "shielding",
+    "interpretations": [
+      "open",
+      "crossed",
+      "defensive"
+    ],
+    "advice_notification": "User is crossing his arms, showing resistance to incoming information, so note to him to uncross his arms to remove the physical barrier and appear more open to the argument."
+  },
+  {
+    "priority": 4,
+    "metric": "yaw",
+    "interpretations": [
+      "steady",
+      "unstable",
+      "turning"
+    ],
+    "advice_notification": "User is rapidly turning his head, showing distraction or unease, so note to him to keep his head steady to demonstrate active listening and hold his ground."
+  },
+  {
+    "priority": 5,
+    "metric": "soothing",
+    "interpretations": [
+      "resting",
+      "touching",
+      "anxious"
+    ],
+    "advice_notification": "User is frequently touching his face or neck, showing high cognitive load or anxiety, so note to him to keep his hands down to avoid broadcasting a 'tell' of stress."
+  },
+  {
+    "priority": 6,
+    "metric": "swaying",
+    "interpretations": [
+      "planted",
+      "shifting",
+      "oscillating"
+    ],
+    "advice_notification": "User is continuously swaying, showing leaking nervous energy, so note to him to plant his feet firmly so he doesn't look like he is trying to escape the room."
+  },
+  {
+    "priority": 7,
+    "metric": "tilt",
+    "interpretations": [
+      "square",
+      "tilted",
+      "withdrawing"
+    ],
+    "advice_notification": "User is displaying a pronounced shoulder tilt, showing subconscious withdrawal, so note to him to square his shoulders to confront the argument head-on instead of physically retreating."
+  }
+]
