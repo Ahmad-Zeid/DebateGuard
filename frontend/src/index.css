@@ -1,1 +1,167 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --color-gray-950: #0a0a0f;
+  --color-gray-900: #111118;
+  --color-gray-850: #16161f;
+  --color-gray-800: #1e1e2a;
+  --color-gray-700: #2a2a3a;
+  --color-gray-600: #3a3a4e;
+  --color-gray-500: #52526e;
+  --color-gray-400: #7a7a96;
+  --color-gray-300: #a0a0b8;
+  --color-gray-200: #c8c8da;
+  --color-gray-100: #e8e8f0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--color-gray-950);
+  color: var(--color-gray-100);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a3a;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a4e;
+}
+
+/* Toast animation */
+@keyframes toast-in {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-out {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+}
+
+.toast-enter {
+  animation: toast-in 0.3s ease-out;
+}
+
+.toast-exit {
+  animation: toast-out 0.3s ease-in forwards;
+}
+
+/* Prose styles for markdown */
+.prose-invert h1,
+.prose-invert h2,
+.prose-invert h3,
+.prose-invert h4 {
+  color: #e8e8f0;
+  font-weight: 700;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose-invert h1 {
+  font-size: 1.875rem;
+}
+
+.prose-invert h2 {
+  font-size: 1.5rem;
+  border-bottom: 1px solid #2a2a3a;
+  padding-bottom: 0.3em;
+}
+
+.prose-invert h3 {
+  font-size: 1.25rem;
+}
+
+.prose-invert p {
+  color: #c8c8da;
+  line-height: 1.75;
+  margin-bottom: 1em;
+}
+
+.prose-invert strong {
+  color: #e8e8f0;
+}
+
+.prose-invert ul,
+.prose-invert ol {
+  color: #c8c8da;
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.prose-invert li {
+  margin-bottom: 0.25em;
+}
+
+.prose-invert code {
+  background: #1e1e2a;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.875em;
+  color: #f87171;
+}
+
+.prose-invert blockquote {
+  border-left: 3px solid #f87171;
+  padding-left: 1em;
+  color: #a0a0b8;
+  font-style: italic;
+}
+
+/* Calibration pulse */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+.calibration-pulse {
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+/* Audio waveform bar animation */
+@keyframes wave {
+
+  0%,
+  100% {
+    height: 8px;
+  }
+
+  50% {
+    height: 32px;
+  }
+}
