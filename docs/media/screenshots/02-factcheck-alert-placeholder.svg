@@ -1,6 +1,0 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
-  <rect width="1280" height="720" fill="#1f2937"/>
-  <rect x="40" y="40" width="1200" height="640" rx="16" fill="#111827" stroke="#78350f" stroke-width="2"/>
-  <text x="640" y="320" text-anchor="middle" fill="#fef3c7" font-family="Arial" font-size="42">Screenshot Placeholder</text>
-  <text x="640" y="380" text-anchor="middle" fill="#fde68a" font-family="Arial" font-size="28">Fact-check Alert with Citation Links</text>
-</svg>
