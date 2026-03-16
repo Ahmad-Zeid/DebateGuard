@@ -1,0 +1,15 @@
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from a .env file if present
+load_dotenv()
+
+# Define and export environment variables here
+ENVIRONMENT = os.getenv("ENVIRONMENT", "DEV") 
+if ENVIRONMENT not in ["DEV", "PROD"]:
+    ENVIRONMENT = "DEV"  # Default to DEV if an invalid value is provided
+HOST = os.getenv("HOST", "0.0.0.0")
+PORT = int(os.getenv("PORT", "8000"))
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./dev_debateguard.db") if ENVIRONMENT == "DEV" else os.getenv("DATABASE_URL")
