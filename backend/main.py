@@ -275,7 +275,7 @@ def generate_report(debate_id: uuid.UUID, user: User = Depends(get_current_user)
     
     client = genai.Client(api_key=GEMINI_API_KEY)
     response = client.models.generate_content(
-        model=MODEL,
+        model="gemini-3-flash-preview",
         contents=prompt
     )
     markdown_report = response.text
