@@ -53,7 +53,7 @@ def create_debate(debate: DebateCreate, user: User = Depends(get_current_user), 
     
     statement = select(Debate).where(Debate.user_id == user.id, Debate.created_at >= start_of_month)
     debates_this_month = session.exec(statement).all()
-    if len(debates_this_month) >= 5:
+    if len(debates_this_month) >= 100:
         raise HTTPException(status_code=429, detail="Maximum of 5 debates per month reached.")
     
     new_debate = Debate(
@@ -92,15 +92,22 @@ async def websocket_endpoint(websocket: WebSocket, debate_id: uuid.UUID, token: 
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
-    await websocket.accept()
-    logger.info("WebSocket connection accepted")
+    try:
+        await websocket.accept()
+        logger.info("WebSocket connection accepted")
+    except Exception as e:
+        logger.warning(f"Failed to accept websocket: {e}")
+        return
 
     audio_input_queue = asyncio.Queue()
     video_input_queue = asyncio.Queue()
     text_input_queue = asyncio.Queue()
 
     async def audio_output_callback(data):
-        await websocket.send_bytes(data)
+        try:
+            await websocket.send_bytes(data)
+        except Exception:
+            pass
 
     async def audio_interrupt_callback():
         pass
@@ -118,6 +125,9 @@ async def websocket_endpoint(websocket: WebSocket, debate_id: uuid.UUID, token: 
         try:
             while True:
                 message = await websocket.receive()
+                if message.get("type") == "websocket.disconnect":
+                    logger.info("Client disconnected normally.")
+                    break
 
                 if message.get("bytes"):
                     # Raw PCM chunks
@@ -153,9 +163,10 @@ async def websocket_endpoint(websocket: WebSocket, debate_id: uuid.UUID, token: 
                     except json.JSONDecodeError:
                         await text_input_queue.put(text)
         except WebSocketDisconnect:
-            logger.info("WebSocket disconnected")
+            logger.info("WebSocket disconnected in receive loop")
         except Exception as e:
-            logger.error(f"Error receiving from client: {e}")
+            if "closed" not in str(e).lower() and "disconnect" not in str(e).lower():
+                logger.error(f"Error receiving from client: {e}")
 
     receive_task = asyncio.create_task(receive_from_client())
 
@@ -168,34 +179,39 @@ async def websocket_endpoint(websocket: WebSocket, debate_id: uuid.UUID, token: 
             audio_interrupt_callback=audio_interrupt_callback,
         ):
             if event:
-                if isinstance(event, dict):
-                    # Handle transcript persistence
-                    if event.get("type") in ["user", "gemini"]:
-                        role = "user" if event["type"] == "user" else "agent"
-                        is_final = event.get("is_final", True)
-                        
-                        if is_final:
-                            # Use current timestamp
-                            timestamp = int(datetime.now(timezone.utc).timestamp())
-                            tl = TranscriptLine(
-                                debate_id=debate.id,
-                                role=role,
-                                text=event.get("text", ""),
-                                timestamp=timestamp,
-                                is_final=is_final
-                            )
-                            session.add(tl)
-                            session.commit()
+                try:
+                    if isinstance(event, dict):
+                        # Handle transcript persistence
+                        if event.get("type") in ["user", "gemini"]:
+                            role = "user" if event["type"] == "user" else "agent"
+                            is_final = event.get("is_final", True)
+                            
+                            if is_final:
+                                # Use current timestamp
+                                timestamp = int(datetime.now(timezone.utc).timestamp())
+                                tl = TranscriptLine(
+                                    debate_id=debate.id,
+                                    role=role,
+                                    text=event.get("text", ""),
+                                    timestamp=timestamp,
+                                    is_final=is_final
+                                )
+                                session.add(tl)
+                                session.commit()
 
-                        # Forward to frontend exactly
-                        await websocket.send_json({
-                            "type": "transcript",
-                            "role": role,
-                            "text": event.get("text", ""),
-                            "is_final": is_final
-                        })
-                    else:
-                        await websocket.send_json(event)
+                            # Forward to frontend exactly
+                            await websocket.send_json({
+                                "type": "transcript",
+                                "role": role,
+                                "text": event.get("text", ""),
+                                "is_final": is_final
+                            })
+                        else:
+                            await websocket.send_json(event)
+                except Exception as e:
+                    if "closed" in str(e).lower() or "disconnect" in str(e).lower():
+                        break
+                    logger.error(f"Error sending to client: {e}")
 
     try:
         await run_session()

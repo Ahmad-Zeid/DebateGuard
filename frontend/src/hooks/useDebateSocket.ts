@@ -17,6 +17,17 @@ export function useDebateSocket({ debateId, onTranscript, enabled }: UseDebateSo
 
   // Playback queue for incoming audio
   const nextPlayTimeRef = useRef(0);
+  const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
+
+  const stopAllAudio = useCallback(() => {
+    activeSourcesRef.current.forEach(source => {
+      try { source.stop(); } catch { /* ignore if already stopped */ }
+    });
+    activeSourcesRef.current = [];
+    if (audioContextRef.current) {
+      nextPlayTimeRef.current = audioContextRef.current.currentTime;
+    }
+  }, []);
 
   const playPCM = useCallback((pcmData: ArrayBuffer) => {
     const ctx = audioContextRef.current;
@@ -36,9 +47,16 @@ export function useDebateSocket({ debateId, onTranscript, enabled }: UseDebateSo
     source.buffer = buffer;
     source.connect(ctx.destination);
 
+    // Clean up from active sources when ended
+    source.onended = () => {
+      activeSourcesRef.current = activeSourcesRef.current.filter(s => s !== source);
+    };
+
     const now = ctx.currentTime;
     const startTime = Math.max(now, nextPlayTimeRef.current);
     source.start(startTime);
+    
+    activeSourcesRef.current.push(source);
     nextPlayTimeRef.current = startTime + buffer.duration;
   }, []);
 
@@ -99,6 +117,12 @@ export function useDebateSocket({ debateId, onTranscript, enabled }: UseDebateSo
         // JSON
         try {
           const payload = JSON.parse(event.data);
+          
+          if (payload.type === 'interrupted' || payload.type === 'turn_complete') {
+             // Reset audio playback queue so new streams don't overlap with old target times
+             stopAllAudio();
+          }
+          
           if (payload.type === 'transcript' && onTranscript) {
             onTranscript({
               role: payload.role === 'user' ? 'user' : 'agent',
@@ -135,7 +159,7 @@ export function useDebateSocket({ debateId, onTranscript, enabled }: UseDebateSo
         ws.close();
       }
     };
-  }, [enabled, debateId, onTranscript, playPCM]);
+  }, [enabled, debateId, onTranscript, playPCM, stopAllAudio]);
 
   const sendBinary = useCallback((data: ArrayBuffer) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {

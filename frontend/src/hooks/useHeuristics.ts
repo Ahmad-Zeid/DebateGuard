@@ -13,15 +13,15 @@ const POSE_MODEL = 'https://storage.googleapis.com/mediapipe-models/pose_landmar
 
 interface FrameSnapshot {
   // Pose
-  leftShoulder: { x: number; y: number };
-  rightShoulder: { x: number; y: number };
-  leftHip: { x: number; y: number };
-  rightHip: { x: number; y: number };
-  leftWrist: { x: number; y: number };
-  rightWrist: { x: number; y: number };
-  leftElbow: { x: number; y: number };
-  rightElbow: { x: number; y: number };
-  nose: { x: number; y: number };
+  leftShoulder: { x: number; y: number; v?: number };
+  rightShoulder: { x: number; y: number; v?: number };
+  leftHip: { x: number; y: number; v?: number };
+  rightHip: { x: number; y: number; v?: number };
+  leftWrist: { x: number; y: number; v?: number };
+  rightWrist: { x: number; y: number; v?: number };
+  leftElbow: { x: number; y: number; v?: number };
+  rightElbow: { x: number; y: number; v?: number };
+  nose: { x: number; y: number; v?: number };
   // Face
   leftIris?: { x: number };
   rightIris?: { x: number };
@@ -119,15 +119,15 @@ export function useHeuristics({ videoRef, enabled }: UseHeuristicsOptions) {
           const poseResult = poseLandmarkerRef.current.detectForVideo(vid, now);
           if (poseResult.landmarks && poseResult.landmarks.length > 0) {
             const lm = poseResult.landmarks[0];
-            snapshot.leftShoulder = { x: lm[11].x, y: lm[11].y };
-            snapshot.rightShoulder = { x: lm[12].x, y: lm[12].y };
-            snapshot.leftHip = { x: lm[23].x, y: lm[23].y };
-            snapshot.rightHip = { x: lm[24].x, y: lm[24].y };
-            snapshot.leftWrist = { x: lm[15].x, y: lm[15].y };
-            snapshot.rightWrist = { x: lm[16].x, y: lm[16].y };
-            snapshot.leftElbow = { x: lm[13].x, y: lm[13].y };
-            snapshot.rightElbow = { x: lm[14].x, y: lm[14].y };
-            snapshot.nose = { x: lm[0].x, y: lm[0].y };
+            snapshot.leftShoulder = { x: lm[11].x, y: lm[11].y, v: lm[11].visibility };
+            snapshot.rightShoulder = { x: lm[12].x, y: lm[12].y, v: lm[12].visibility };
+            snapshot.leftHip = { x: lm[23].x, y: lm[23].y, v: lm[23].visibility };
+            snapshot.rightHip = { x: lm[24].x, y: lm[24].y, v: lm[24].visibility };
+            snapshot.leftWrist = { x: lm[15].x, y: lm[15].y, v: lm[15].visibility };
+            snapshot.rightWrist = { x: lm[16].x, y: lm[16].y, v: lm[16].visibility };
+            snapshot.leftElbow = { x: lm[13].x, y: lm[13].y, v: lm[13].visibility };
+            snapshot.rightElbow = { x: lm[14].x, y: lm[14].y, v: lm[14].visibility };
+            snapshot.nose = { x: lm[0].x, y: lm[0].y, v: lm[0].visibility };
 
             // Set calibration baseline (average shoulder-to-hip dist)
             if (calibrationRef.current === null) {
@@ -183,9 +183,15 @@ export function useHeuristics({ videoRef, enabled }: UseHeuristicsOptions) {
     const total = buf.length;
     const threshold = 0.6; // 60% of window
 
+    // Check visibility confidence for pose heuristics (> 0.5 threshold)
+    const hipsVisibleCount = buf.filter(f => (f.leftHip.v ?? 1) > 0.5 && (f.rightHip.v ?? 1) > 0.5).length;
+    const wristsVisibleCount = buf.filter(f => (f.leftWrist.v ?? 1) > 0.5 || (f.rightWrist.v ?? 1) > 0.5).length;
+    const hipsReliable = hipsVisibleCount / total > 0.5;
+    const wristsReliable = wristsVisibleCount / total > 0.5;
+
     // 1. Slouch: Y-distance shoulder-to-hip < 85% of calibration baseline for > 60%
     let slouchCount = 0;
-    if (calibrationRef.current) {
+    if (calibrationRef.current && hipsReliable) {
       for (const f of buf) {
         const leftDist = Math.abs(f.leftShoulder.y - f.leftHip.y);
         const rightDist = Math.abs(f.rightShoulder.y - f.rightHip.y);
@@ -195,18 +201,41 @@ export function useHeuristics({ videoRef, enabled }: UseHeuristicsOptions) {
         }
       }
     }
-    const slouch = slouchCount / total > threshold;
+    const slouch = hipsReliable ? slouchCount / total > threshold : false;
 
-    // 2. Eye Contact: iris-to-eye-corner X-ratio exits 0.4-0.6 band for > 60%
+    // 2. Eye Contact: iris-to-eye-corner ratio exits reasonable bounds
     let gazeFailCount = 0;
     for (const f of buf) {
-      if (f.leftIris && f.leftEyeOuter && f.leftEyeInner) {
+      let isGazingAway = false;
+      
+      if (f.leftIris && f.leftEyeOuter && f.leftEyeInner && f.rightIris && f.rightEyeOuter && f.rightEyeInner) {
+        const leftEyeWidth = Math.abs(f.leftEyeInner.x - f.leftEyeOuter.x);
+        const rightEyeWidth = Math.abs(f.rightEyeInner.x - f.rightEyeOuter.x);
+        if (leftEyeWidth > 0.001 && rightEyeWidth > 0.001) {
+          const leftRatio = Math.abs(f.leftIris.x - f.leftEyeOuter.x) / leftEyeWidth;
+          const rightRatio = Math.abs(f.rightIris.x - f.rightEyeOuter.x) / rightEyeWidth;
+          const avgRatio = (leftRatio + rightRatio) / 2;
+          // Very relaxed bounds to prevent false positives (looking too far left/right)
+          if (avgRatio < 0.25 || avgRatio > 0.75) isGazingAway = true;
+        }
+      } else if (f.leftIris && f.leftEyeOuter && f.leftEyeInner) {
         const eyeWidth = Math.abs(f.leftEyeInner.x - f.leftEyeOuter.x);
         if (eyeWidth > 0.001) {
           const ratio = Math.abs(f.leftIris.x - f.leftEyeOuter.x) / eyeWidth;
-          if (ratio < 0.4 || ratio > 0.6) gazeFailCount++;
+          if (ratio < 0.25 || ratio > 0.75) isGazingAway = true;
         }
       }
+      
+      // Also consider extreme yaw as gazing away
+      if (f.noseTip && f.leftEar && f.rightEar) {
+        const earWidth = Math.abs(f.leftEar.x - f.rightEar.x);
+        if (earWidth > 0.001) {
+          const noseRatio = Math.abs(f.noseTip.x - f.leftEar.x) / earWidth;
+          if (noseRatio < 0.2 || noseRatio > 0.8) isGazingAway = true; // face turned away
+        }
+      }
+      
+      if (isGazingAway) gazeFailCount++;
     }
     const gaze = gazeFailCount / total > threshold;
 
@@ -224,26 +253,30 @@ export function useHeuristics({ videoRef, enabled }: UseHeuristicsOptions) {
 
     // 4. Defensive Shielding: wrists cross torso center-line near opposite elbows > 60%
     let shieldCount = 0;
-    for (const f of buf) {
-      const torsoCenter = (f.leftShoulder.x + f.rightShoulder.x) / 2;
-      const leftCrossed = f.leftWrist.x > torsoCenter; // left wrist past center to right side
-      const rightCrossed = f.rightWrist.x < torsoCenter;
-      if (leftCrossed && rightCrossed) shieldCount++;
+    if (wristsReliable) {
+      for (const f of buf) {
+        const torsoCenter = (f.leftShoulder.x + f.rightShoulder.x) / 2;
+        const leftCrossed = f.leftWrist.x > torsoCenter; // left wrist past center to right side
+        const rightCrossed = f.rightWrist.x < torsoCenter;
+        if (leftCrossed && rightCrossed) shieldCount++;
+      }
     }
-    const shielding = shieldCount / total > threshold;
+    const shielding = wristsReliable ? shieldCount / total > threshold : false;
 
     // 5. Self-Soothing: wrist-to-face distance approaches zero > 60%
     let soothingCount = 0;
-    for (const f of buf) {
-      const lDist = Math.sqrt(
-        Math.pow(f.leftWrist.x - f.nose.x, 2) + Math.pow(f.leftWrist.y - f.nose.y, 2)
-      );
-      const rDist = Math.sqrt(
-        Math.pow(f.rightWrist.x - f.nose.x, 2) + Math.pow(f.rightWrist.y - f.nose.y, 2)
-      );
-      if (lDist < 0.15 || rDist < 0.15) soothingCount++;
+    if (wristsReliable) {
+      for (const f of buf) {
+        const lDist = Math.sqrt(
+          Math.pow(f.leftWrist.x - f.nose.x, 2) + Math.pow(f.leftWrist.y - f.nose.y, 2)
+        );
+        const rDist = Math.sqrt(
+          Math.pow(f.rightWrist.x - f.nose.x, 2) + Math.pow(f.rightWrist.y - f.nose.y, 2)
+        );
+        if (lDist < 0.15 || rDist < 0.15) soothingCount++;
+      }
     }
-    const soothing = soothingCount / total > threshold;
+    const soothing = wristsReliable ? soothingCount / total > threshold : false;
 
     // 6. Yaw Instability: nose-to-ear X-variance, >= 4 rapid directional shifts
     let yawShifts = 0;
@@ -260,21 +293,23 @@ export function useHeuristics({ videoRef, enabled }: UseHeuristicsOptions) {
 
     // 7. Swaying: X-axis hip center oscillation, shifts > 5% of frame width
     let swayCount = 0;
-    let prevHipX: number | null = null;
-    let swayDirection: 'left' | 'right' | null = null;
-    for (const f of buf) {
-      const hipCenterX = (f.leftHip.x + f.rightHip.x) / 2;
-      if (prevHipX !== null) {
-        const diff = hipCenterX - prevHipX;
-        if (Math.abs(diff) > 0.05) {
-          const dir: 'left' | 'right' = diff > 0 ? 'right' : 'left';
-          if (swayDirection && dir !== swayDirection) swayCount++;
-          swayDirection = dir;
+    if (hipsReliable) {
+      let prevHipX: number | null = null;
+      let swayDirection: 'left' | 'right' | null = null;
+      for (const f of buf) {
+        const hipCenterX = (f.leftHip.x + f.rightHip.x) / 2;
+        if (prevHipX !== null) {
+          const diff = hipCenterX - prevHipX;
+          if (Math.abs(diff) > 0.05) {
+            const dir: 'left' | 'right' = diff > 0 ? 'right' : 'left';
+            if (swayDirection && dir !== swayDirection) swayCount++;
+            swayDirection = dir;
+          }
         }
+        prevHipX = hipCenterX;
       }
-      prevHipX = hipCenterX;
     }
-    const swaying = swayCount > 2;
+    const swaying = hipsReliable ? swayCount > 2 : false;
 
     // Return in order: Gaze, Posture(Slouch), Shielding, Yaw, Soothing, Swaying, Tilt
     return [gaze, slouch, shielding, yaw, soothing, swaying, tilt];

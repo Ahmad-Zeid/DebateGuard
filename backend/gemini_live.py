@@ -46,6 +46,7 @@ class GeminiLive:
             self.type = "COACH"
         
         self.is_agent_talking = False
+        self.last_interruption_time = 0.0
 
         topic_context = "\nMake sure to use the google search tool every single time the user mentions a statistic to make sure it is not made up. Just search the statistic and if you dont find it easily that it is most likely made up."
         if title:
@@ -139,6 +140,9 @@ class GeminiLive:
 
             async def receive_loop():
                 try:
+                    current_user_text = ""
+                    current_gemini_text = ""
+
                     while True:
                         async for response in session.receive():
                             logger.debug(f"Received response from Gemini: {response}")
@@ -156,23 +160,39 @@ class GeminiLive:
                                                 audio_output_callback(part.inline_data.data)
                                 
                                 if server_content.input_transcription and server_content.input_transcription.text:
-                                    await event_queue.put({"type": "user", "text": server_content.input_transcription.text})
+                                    current_user_text += server_content.input_transcription.text
+                                    await event_queue.put({"type": "user", "text": current_user_text, "is_final": False})
                                 
                                 if server_content.output_transcription and server_content.output_transcription.text:
-                                    await event_queue.put({"type": "gemini", "text": server_content.output_transcription.text})
+                                    current_gemini_text += server_content.output_transcription.text
+                                    await event_queue.put({"type": "gemini", "text": current_gemini_text, "is_final": False})
                                 
                                 if server_content.turn_complete:
                                     self.is_agent_talking = False
                                     self.user_speech_duration = 0.0
+                                    
+                                    # Emit final transcripts
+                                    if current_user_text.strip():
+                                        await event_queue.put({"type": "user", "text": current_user_text.strip(), "is_final": True})
+                                        current_user_text = ""
+                                        
+                                    if current_gemini_text.strip():
+                                        await event_queue.put({"type": "gemini", "text": current_gemini_text.strip(), "is_final": True})
+                                        current_gemini_text = ""
+                                        
                                     await event_queue.put({"type": "turn_complete"})
                                 
                                 if server_content.interrupted:
                                     self.is_agent_talking = False
                                     self.user_speech_duration = 0.0
                                     
-                                    # Recovery prompt text nudge
-                                    logger.info("Agent was interrupted. Forcing recovery...")
-                                    await text_input_queue.put("You were interrupted. Briefly acknowledge the point and finish your previous argument.")
+                                    # If interrupted, finalize whatever agent was saying
+                                    if current_gemini_text.strip():
+                                        await event_queue.put({"type": "gemini", "text": current_gemini_text.strip(), "is_final": True})
+                                        current_gemini_text = ""
+                                    
+                                    # We don't force a recovery text nudge here anymore to prevent the agent from repeating itself
+                                    # and generating duplicated audio streams.
                                     
                                     if audio_interrupt_callback:
                                         if inspect.iscoroutinefunction(audio_interrupt_callback):

@@ -50,6 +50,29 @@ export default function DebateRoom() {
   const elapsedRef = useRef(0);
   const streamRef = useRef<MediaStream | null>(null);
 
+  const handleTranscript = useCallback((msg: TranscriptMessage) => {
+    setTranscripts((prev) => {
+      // Find the most recent message of the SAME role
+      let lastRoleIndex = -1;
+      for (let i = prev.length - 1; i >= 0; i--) {
+        if (prev[i].role === msg.role) {
+          lastRoleIndex = i;
+          break;
+        }
+      }
+
+      // If we found an active (non-final) message for this role, update it
+      if (lastRoleIndex !== -1 && !prev[lastRoleIndex].isFinal) {
+        const next = [...prev];
+        next[lastRoleIndex] = msg;
+        return next;
+      }
+      
+      // Otherwise append it as a new message bubble
+      return [...prev, msg];
+    });
+  }, []);
+
   // WebSocket hook
   const {
     isConnected,
@@ -57,18 +80,7 @@ export default function DebateRoom() {
     close: closeSocket,
   } = useDebateSocket({
     debateId: debateId!,
-    onTranscript: (msg) => {
-      setTranscripts((prev) => {
-        // If latest message matches role and is not final, update it
-        if (prev.length > 0) {
-          const last = prev[prev.length - 1];
-          if (last.role === msg.role && !last.isFinal) {
-            return [...prev.slice(0, -1), msg];
-          }
-        }
-        return [...prev, msg];
-      });
-    },
+    onTranscript: handleTranscript,
     onAudioData: undefined, // handled internally by the hook
     enabled: isActive && !calibrating,
   });
