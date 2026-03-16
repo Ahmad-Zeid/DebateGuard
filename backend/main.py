@@ -68,6 +68,12 @@ def create_debate(debate: DebateCreate, user: User = Depends(get_current_user), 
     
     return new_debate
 
+@app.get("/debates/")
+def list_debates(user: User = Depends(get_current_user), session: Session = Depends(get_session)):
+    statement = select(Debate).where(Debate.user_id == user.id).order_by(Debate.created_at.desc())
+    debates = session.exec(statement).all()
+    return debates
+
 @app.websocket("/ws/debate/{debate_id}")
 async def websocket_endpoint(websocket: WebSocket, debate_id: uuid.UUID, token: str = Query(...), session: Session = Depends(get_session)):
     try:
@@ -236,7 +242,7 @@ def generate_report(debate_id: uuid.UUID, user: User = Depends(get_current_user)
     {transcript_text}
 
     **Telemetry Stats (Average Success Rates):**
-    {telemetry_stats} 
+    {telemetry_records} 
     (Note: Stats are success percentages. 100% means perfect behavior, 0% means constant failure.)
 
     ---
