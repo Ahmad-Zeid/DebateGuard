@@ -2,32 +2,23 @@ import asyncio
 import base64
 import json
 import logging
-import os
 
-from dotenv import load_dotenv
+from config import HOST, PORT, GEMINI_API_KEY, MODEL, FRONTEND_URL
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 from gemini_live import GeminiLive
-
-# Load environment variables
-load_dotenv()
+from db import create_db_and_tables
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Configuration
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-MODEL = os.getenv("MODEL", "gemini-2.5-flash-native-audio-preview-12-2025")
 
 # Initialize FastAPI
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -106,9 +97,8 @@ async def websocket_endpoint(websocket: WebSocket):
         except:
             pass
 
-
 if __name__ == "__main__":
     import uvicorn
-
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="localhost", port=port)
+    create_db_and_tables()
+    port = int(PORT)
+    uvicorn.run(app, host=HOST, port=port)

@@ -10,23 +10,29 @@ class GeminiLive:
     """
     Handles the interaction with the Gemini Live API.
     """
-    def __init__(self, api_key, model, input_sample_rate, tools=None, tool_mapping=None):
+    def __init__(self, api_key, model, type, prompt, input_sample_rate, tools=None, tool_mapping=None):
         """
         Initializes the GeminiLive client.
 
         Args:
             api_key (str): The Gemini API Key.
             model (str): The model name to use.
+            type (str): The type of the conversation.
+            prompt (str): The initial prompt for the conversation.
             input_sample_rate (int): The sample rate for audio input.
             tools (list, optional): List of tools to enable. Defaults to None.
             tool_mapping (dict, optional): Mapping of tool names to functions. Defaults to None.
         """
         self.api_key = api_key
         self.model = model
+        self.type = type
+        self.prompt = prompt
         self.input_sample_rate = input_sample_rate
         self.client = genai.Client(api_key=api_key, http_options={"api_version": "v1alpha"})
         self.tools = tools or []
         self.tool_mapping = tool_mapping or {}
+        if self.type not in ["debate", "coaching"]:
+            self.type = "coaching"  # Default to debate if invalid type provided
 
     async def start_session(self, audio_input_queue, video_input_queue, text_input_queue, audio_output_callback, audio_interrupt_callback=None):
         config = types.LiveConnectConfig(
@@ -38,7 +44,7 @@ class GeminiLive:
                     )
                 )
             ),
-            system_instruction=types.Content(parts=[types.Part(text="You are a helpful AI assistant. Keep your responses concise. Speak in a friendly Irish accent. You can see the user's camera or screen which is shared as realtime input images with you.")]),
+            system_instruction=types.Content(parts=[types.Part(text=self.prompt)]),
             input_audio_transcription=types.AudioTranscriptionConfig(),
             output_audio_transcription=types.AudioTranscriptionConfig(),
             proactivity=types.ProactivityConfig(proactive_audio=True),
@@ -70,6 +76,8 @@ class GeminiLive:
                     pass
 
             async def send_text():
+                if self.type == "debate":
+                    pass  # In debate mode, we might not want to send user text input/ that is the input of the body language metrics
                 try:
                     while True:
                         text = await text_input_queue.get()
