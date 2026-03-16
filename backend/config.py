@@ -10,7 +10,7 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "DEV")
 if ENVIRONMENT not in ["DEV", "PROD"]:
     ENVIRONMENT = "DEV"  # Default to DEV if an invalid value is provided
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 if ENVIRONMENT == "PROD" and not FRONTEND_URL:
     raise ValueError("CRITICAL: FRONTEND_URL is missing in PROD environment.")
