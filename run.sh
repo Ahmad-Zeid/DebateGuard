@@ -44,7 +44,7 @@ else
     
     echo "Setting up frontend dependencies..."
     cd frontend
-    npm install
+    npm install --force
     cd ..
     
     echo "✅ Setup complete!"
