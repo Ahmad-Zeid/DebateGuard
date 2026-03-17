@@ -21,3 +21,4 @@ terraform.tfvars
 
 .env
 .env.local
+dev_debateguard.db

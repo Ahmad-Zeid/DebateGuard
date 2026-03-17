@@ -29,5 +29,5 @@ MODEL = os.getenv("MODEL", "gemini-2.5-flash-native-audio-preview-12-2025")
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8000"))
 
-SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-key-for-dev") if ENVIRONMENT == "DEV" else os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-key-for-dev")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")

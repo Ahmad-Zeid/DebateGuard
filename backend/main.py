@@ -78,8 +78,9 @@ def list_debates(user: User = Depends(get_current_user), session: Session = Depe
 async def websocket_endpoint(websocket: WebSocket, debate_id: uuid.UUID, token: str = Query(...), session: Session = Depends(get_session)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-        user = session.get(User, user_id)
+        user_id_str = payload.get("sub")
+        user_id = uuid.UUID(user_id_str) if user_id_str else None
+        user = session.get(User, user_id) if user_id else None
         if not user:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
