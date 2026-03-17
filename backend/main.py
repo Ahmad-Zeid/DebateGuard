@@ -68,6 +68,18 @@ def create_debate(debate: DebateCreate, user: User = Depends(get_current_user), 
     
     return new_debate
 
+
+@app.get("/debates/{debate_id}")
+def get_debate(debate_id: str, user: User = Depends(get_current_user), session: Session = Depends(get_session)):
+    statement = select(Debate).where(Debate.id == debate_id, Debate.user_id == user.id)
+    debate = session.exec(statement).first()
+    if not debate:
+        raise HTTPException(status_code=404, detail="Debate not found")
+    
+    response_data = debate.dict()
+    response_data["has_transcripts"] = len(debate.transcript_lines) > 0
+    return response_data
+
 @app.get("/debates/")
 def list_debates(user: User = Depends(get_current_user), session: Session = Depends(get_session)):
     statement = select(Debate).where(Debate.user_id == user.id).order_by(Debate.created_at.desc())
@@ -90,6 +102,10 @@ async def websocket_endpoint(websocket: WebSocket, debate_id: uuid.UUID, token: 
 
     debate = session.get(Debate, debate_id)
     if not debate or debate.user_id != user.id:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+        
+    if len(debate.transcript_lines) > 0:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 

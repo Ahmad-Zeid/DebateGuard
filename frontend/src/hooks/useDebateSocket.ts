@@ -103,7 +103,9 @@ export function useDebateSocket({ debateId, onTranscript, enabled }: UseDebateSo
         };
 
         source.connect(worklet);
-        // Don't connect worklet to destination (no feedback loop)
+        worklet.connect(ctx.destination);
+        // We connect worklet to destination to ensure the audio graph runs, 
+        // but pcm-processor doesn't write to outputs so it won't echo.
       } catch (err) {
         console.error('Mic setup failed:', err);
       }

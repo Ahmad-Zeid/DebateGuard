@@ -40,6 +40,7 @@ export default function DebateRoom() {
   const [toastFading, setToastFading] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
   const [transcripts, setTranscripts] = useState<TranscriptMessage[]>([]);
+  const [debateMode, setDebateMode] = useState<'DEBATE'|'COACH'|null>(null);
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -49,6 +50,21 @@ export default function DebateRoom() {
   const cycleCountRef = useRef(0);
   const elapsedRef = useRef(0);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Fetch Debate Mode
+  useEffect(() => {
+    if (!debateId) return;
+    api.get(`/debates/${debateId}`).then(res => {
+      if (res.data.has_transcripts) {
+        navigate(`/report/${debateId}`);
+        return;
+      }
+      setDebateMode(res.data.mode);
+    }).catch(err => {
+      console.error(err);
+      setDebateMode('COACH');
+    });
+  }, [debateId, navigate]);
 
   const handleTranscript = useCallback((msg: TranscriptMessage) => {
     setTranscripts((prev) => {
@@ -239,19 +255,22 @@ export default function DebateRoom() {
       });
 
       // 2. UI Warning toast — find highest priority true metric
-      const highPriorityIdx = PRIORITY_ORDER.find((i) => metrics[i]);
-      if (highPriorityIdx !== undefined) {
-        showToast(`⚠️ ${METRIC_LABELS[highPriorityIdx]} issue detected`);
-      }
+      // Only show toast and nudge in COACH mode
+      if (debateMode !== 'DEBATE') {
+        const highPriorityIdx = PRIORITY_ORDER.find((i) => metrics[i]);
+        if (highPriorityIdx !== undefined) {
+          showToast(`⚠️ ${METRIC_LABELS[highPriorityIdx]} issue detected`);
+        }
 
-      // 3. Every 2nd cycle (10s): send AI nudge
-      if (cycleCountRef.current % 2 === 0) {
-        const nudgeIdx = PRIORITY_ORDER.find((i) => metrics[i]);
-        if (nudgeIdx !== undefined) {
-          sendJson({
-            type: 'nudge',
-            text: NUDGE_TEXTS[METRIC_KEYS[nudgeIdx]],
-          });
+        // 3. Every 2nd cycle (10s): send AI nudge
+        if (cycleCountRef.current % 2 === 0) {
+          const nudgeIdx = PRIORITY_ORDER.find((i) => metrics[i]);
+          if (nudgeIdx !== undefined) {
+            sendJson({
+              type: 'nudge',
+              text: NUDGE_TEXTS[METRIC_KEYS[nudgeIdx]],
+            });
+          }
         }
       }
 
@@ -260,7 +279,22 @@ export default function DebateRoom() {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [isActive, getMetrics, resetBuffer, sendJson, showToast]);
+  }, [isActive, debateMode, getMetrics, resetBuffer, sendJson, showToast]);
+
+  // Prevent accidental refresh / closing during active debate
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isActive && !generatingReport) {
+        e.preventDefault();
+        // Chrome requires returnValue to be set
+        e.returnValue = ''; 
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isActive, generatingReport]);
 
   // Auto-scroll transcript
   useEffect(() => {
