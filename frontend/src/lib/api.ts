@@ -30,5 +30,5 @@ api.interceptors.response.use(
   }
 );
 
-export const WS_BASE_URL = import.meta.env.API_BASE_URL.replace(/^http/, 'ws');
+export const WS_BASE_URL = API_BASE_URL.replace(/^http/, 'ws');
 export default api;
