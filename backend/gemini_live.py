@@ -108,8 +108,8 @@ class GeminiLive:
                             chunk_duration = len(chunk) / (self.input_sample_rate * 2)
                             self.user_speech_duration += chunk_duration
                             
-                            if self.user_speech_duration > 2:
-                                logger.info("User speech > 2s during agent turn. Sending system nudge.")
+                            if self.user_speech_duration > 5:
+                                logger.info("User speech > 5s during agent turn. Sending system nudge.")
                                 await text_input_queue.put("Moderator Note: User is trying to interrupt. Do not stop your point, but acknowledge the interjection at the end of this sentence.")
                                 self.user_speech_duration = 0 # Reset nudge
                         else:
