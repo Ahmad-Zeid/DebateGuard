@@ -120,8 +120,10 @@ export default function ReportPage() {
                   backgroundColor: '#111118',
                   border: '1px solid #2a2a3a',
                   borderRadius: '12px',
-                  color: '#e8e8f0',
+                  color: '#ffffff',
                 }}
+                itemStyle={{ color: '#ffffff' }}
+                labelStyle={{ color: '#7a7a96' }}
                 formatter={(v) => [`${v}%`, 'Success Rate']}
               />
               <Bar dataKey="value" radius={[6, 6, 0, 0]}>
