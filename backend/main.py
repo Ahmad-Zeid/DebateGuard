@@ -53,8 +53,8 @@ def create_debate(debate: DebateCreate, user: User = Depends(get_current_user), 
     
     statement = select(Debate).where(Debate.user_id == user.id, Debate.created_at >= start_of_month)
     debates_this_month = session.exec(statement).all()
-    if len(debates_this_month) >= 100:
-        raise HTTPException(status_code=429, detail="Maximum of 5 debates per month reached.")
+    if len(debates_this_month) >= 10:
+        raise HTTPException(status_code=429, detail="Maximum of 10 debates per month reached.")
     
     new_debate = Debate(
         user_id=user.id,

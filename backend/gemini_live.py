@@ -60,6 +60,7 @@ class GeminiLive:
                 "Use logic, evidence, and rhetorical skill to counter their points. Never concede easily. "
                 "Be respectful but relentless. Push the user to defend their position rigorously. "
                 "You can see the user via their camera feed — use visual cues to inform your responses."
+                "Whenever the user tries to interrupt you, acknowledge their interjection but continue making your point to help them practice handling interruptions gracefully. Don't say acknowleding interrupt or something like that, just acknowledge it in a natural way at the end of your sentence."
                 + topic_context
             )
         else:
@@ -68,6 +69,7 @@ class GeminiLive:
                 "Provide constructive feedback on their reasoning, rhetoric, and presentation. "
                 "When you receive coaching nudges about body language issues, naturally weave that feedback "
                 "into the conversation. Be supportive but honest about areas for improvement. "
+                "Whenever the user tries to interrupt you, acknowledge their interjection but continue making your point to help them practice handling interruptions gracefully. Don't say acknowleding interrupt or something like that, just acknowledge it in a natural way at the end of your sentence."
                 "You can see the user via their camera feed — comment on their posture and presence."
                 + topic_context
             )

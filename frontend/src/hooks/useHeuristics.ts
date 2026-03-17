@@ -215,14 +215,14 @@ export function useHeuristics({ videoRef, enabled }: UseHeuristicsOptions) {
           const leftRatio = Math.abs(f.leftIris.x - f.leftEyeOuter.x) / leftEyeWidth;
           const rightRatio = Math.abs(f.rightIris.x - f.rightEyeOuter.x) / rightEyeWidth;
           const avgRatio = (leftRatio + rightRatio) / 2;
-          // Very relaxed bounds to prevent false positives (looking too far left/right)
-          if (avgRatio < 0.25 || avgRatio > 0.75) isGazingAway = true;
+          // Tighter bounds to catch when eyes dart to a second monitor
+          if (avgRatio < 0.35 || avgRatio > 0.65) isGazingAway = true;
         }
       } else if (f.leftIris && f.leftEyeOuter && f.leftEyeInner) {
         const eyeWidth = Math.abs(f.leftEyeInner.x - f.leftEyeOuter.x);
         if (eyeWidth > 0.001) {
           const ratio = Math.abs(f.leftIris.x - f.leftEyeOuter.x) / eyeWidth;
-          if (ratio < 0.25 || ratio > 0.75) isGazingAway = true;
+          if (ratio < 0.35 || ratio > 0.65) isGazingAway = true;
         }
       }
       
@@ -231,7 +231,8 @@ export function useHeuristics({ videoRef, enabled }: UseHeuristicsOptions) {
         const earWidth = Math.abs(f.leftEar.x - f.rightEar.x);
         if (earWidth > 0.001) {
           const noseRatio = Math.abs(f.noseTip.x - f.leftEar.x) / earWidth;
-          if (noseRatio < 0.2 || noseRatio > 0.8) isGazingAway = true; // face turned away
+          // Tightened threshold for when the head turns to read something else
+          if (noseRatio < 0.35 || noseRatio > 0.65) isGazingAway = true; // face turned away
         }
       }
       
